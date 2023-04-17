@@ -26,7 +26,7 @@ palette(brewer.pal(8, "Set2"))
 
 ```{r dataread, message=FALSE, warning=FALSE, include=FALSE}
 
-# create function to read and combine all data in the folder(Attention il faut simplifier le path pour qu'il soit utilisable pour tous)
+# We import the csv from the folder Data containing all the site's CSV
 
 IC<-read.csv("data/IC.csv",header=TRUE,sep=";", dec=",")
 TS<-read.csv("data/TS.csv",header=TRUE,sep=";", dec=",")
@@ -42,21 +42,22 @@ Arvoredo Map
 ======================================================================
 ```{r map}
 ###Ilha do Campeche
-## get lat lon
-siteCoordsIC = IC %>% 
-  dplyr::group_by(Site)%>% 
+## For each site we create a summary containing the coordinates, the temperature data and the site name
+## get the coordinates of the site (lat,long)
+siteCoordsIC = IC %>% #we use the data from IC csv
+  dplyr::group_by(Site)%>% #we group the data by site name (IC)
   dplyr::summarise(lng = mean(longitude, na.rm=T), 
-                   lat = mean(latitude, na.rm=T))
+                   lat = mean(latitude, na.rm=T)) #we calculate the min, max and mean 
 
-## get temp information by site
+## get temperature information by site (min, max and mean)
 siteTempIC = IC %>% dplyr::group_by(Site)%>%  
   dplyr::group_by(Site) %>% 
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
-SumIC = full_join(siteCoordsIC, siteTempIC)#we have to add the depth
+## We join all the the information in one sheet
+SumIC = full_join(siteCoordsIC, siteTempIC) #we join the table to have one unique table 
 
-###Bahía do Farol
+### Bahía do Farol
 ## get lat lon
 siteCoordsFA = FA %>% 
   dplyr::group_by(Site)%>% 
@@ -68,7 +69,7 @@ siteTempFA = FA %>% dplyr::group_by(Site)%>%
   dplyr::group_by(Site) %>% 
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
+## join the information together
 SumFA = full_join(siteCoordsFA, siteTempFA)#we have to add the depth
 
 ###Ilha das Aranhas
@@ -83,7 +84,7 @@ siteTempAR = AR %>% dplyr::group_by(Site)%>%
   dplyr::group_by(Site) %>% 
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
+## join the information together
 SumAR = full_join(siteCoordsAR, siteTempAR)#we have to add the depth
 
 ### Ilha Deserta
@@ -98,7 +99,7 @@ siteTempDE = DE %>% dplyr::group_by(Site)%>%
   dplyr::group_by(Site) %>% 
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
+## ajoin the information in one sheet
 SumDE = full_join(siteCoordsDE, siteTempDE)#we have to add the depth
 
 ###Toca de Salema
@@ -114,7 +115,7 @@ siteTempTS = TS %>% dplyr::group_by(Site)%>%
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
 
-## add abund and cover to coords
+## join the information in one sheet
 SumTS = full_join(siteCoordsTS, siteTempTS)#we have to add the depth
 
 ###Rancho Norte 
@@ -131,7 +132,7 @@ siteTempRN = RN %>% dplyr::group_by(Site)%>%
   filter(Site != "NA")%>%
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
+## join the information in one sheet
 SumRN = full_join(siteCoordsRN, siteTempRN)#we have to add the depth
 
 ###Ilha de Galé
@@ -146,7 +147,7 @@ siteTempIG = IG %>% dplyr::group_by(Site)%>%
   dplyr::group_by(Site) %>%
   dplyr::summarise(maxTemp = max(Temp,na.rm=T),minTemp = min(Temp,na.rm = T), meanTemp=mean(Temp,na.rm=T)) 
 
-## add abund and cover to coords
+## join the information in one sheet
 SumIG = full_join(siteCoordsIG, siteTempIG)#we have to add the depth
 
 
@@ -158,14 +159,16 @@ pal <- colorFactor(palette = c('#e31a1c','#1f78b4','#b2df8a','#33a02c',
                                                   "FA", "NL","RN","SA", "SC", 
                                                   "TS","XV"))
 
-##
+## We gather all the site summaries in a single table (Z) that will be used for the map
 Z <- rbind(SumTS,SumIG,SumDE,SumRN,SumFA,SumAR,SumIC)
 
-##
+## We create the map by using leaflet package
+#the popup provides site/coordinate/temperature data information when clicking on the icon
+#cluster allows sites to be grouped according to zoom
 leaflet(Z[1:6]) %>% 
   addTiles() %>%
   addMarkers(popup = ~paste0('Site: ',Site,"<br/>Longitude :",lng,"<br/>",'Latitude :',lat,"<br/>",'Min Temp :', minTemp,"<br/>",'Max Temp :',maxTemp,"<br/>",'Mean Temp :',round(meanTemp,digits=3)), 
-label = ~paste0(Site),
+label = ~paste0(Site), 
   clusterOptions = markerClusterOptions()) %>% 
   addMiniMap(toggleDisplay = T)
 
@@ -173,6 +176,7 @@ label = ~paste0(Site),
 Temperature summary by Site
 ======================================================================
 ```{r}
+## we create the summary table and rename the columns
 colnames(Z)[2]<-"Longitude"
 colnames(Z)[3]<-"Latitude"
 colnames(Z)[4]<-"Max Temperature (ºC)"
@@ -188,14 +192,18 @@ Temperature graphics by Site
 ### Ilha de Campeche
 
 ```{r}
+## We change the format of the data 
 IC$Date=as.Date(IC$Date)
+## we change the depth data as factor in order to have different curves depending on the depth
 IC$Depth_m <- factor(IC$Depth_m)
+## we create the graphic 
 ICgraph <-ggplot() + geom_line(data =IC, aes(x = Date, y = Temp, color = Depth_m))
 ICgraph <- ICgraph + labs(title="Temperature data from Ilha do Campeche",
                           y = "Temperature",
                           x = "Date",
                           colour = "Depth")
 ggplotly(ICgraph)
+##we use ggplotly to have an interactive graphic
 
 ```
 
@@ -209,8 +217,9 @@ DEgraph<-ggplot() + geom_line(data = DE, aes(x = Date, y = Temp, color = Depth_m
 DEgraph <- DEgraph+ labs(title="Temperature data from Ilha Deserta",
                     y = "Temperature",
                     x = "Date",
-                    colour = "Depth")
+                    colour = "Depth")                 
 ggplotly(DEgraph)
+##we use ggplotly to have an interactive graphic
 ```
 
 ### Ilha das Aranhas
@@ -224,7 +233,7 @@ ARgraph <- ARgraph + labs(title="Temperature data from Ilha das Aranhas",
                                 x = "Date",
                                 colour = "Depth")
 ggplotly(ARgraph)
-
+##we use ggplotly to have an interactive graphic
 ```
 
 ### Bahia do Farol
@@ -238,6 +247,7 @@ FArolgraph <- FArolgraph + labs(title="Temperature data from Bahia do Farol",
                     x = "Date",
                     colour = "Depth")
 ggplotly(FArolgraph)
+##we use ggplotly to have an interactive graphic
 ```
 
 ### Ilha de Galé
@@ -275,4 +285,5 @@ RNgraph <- RNgraph + labs(title="Temperature data from Rancho Norte",
                           x = "Date",
                           colour = "Depth")
 ggplotly(RNgraph)
+##we use ggplotly to have an interactive graphic
 ```
